@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aligarh Cyber Crime Cell - Cyber Wednesday Awareness Campaign Portal
-   Vercel Global Realtime Auto-Sync Engine (5-Sec Live Polling Loop)
+   Vercel & Mobile Multi-Device Realtime Cloud Engine (iOS & Android Compatible)
    ========================================================================== */
 
 // Exact 32 Police Stations List for District Aligarh
@@ -191,15 +191,19 @@ function updateAdminUI() {
 }
 
 /* ==========================================================================
-   3. Realtime Global Cloud Auto-Sync & Polling Engine
+   3. Realtime Global Cloud Auto-Sync Engine (iOS & Android Compatible)
    ========================================================================== */
 async function loadCampaignData() {
   let cloudLoaded = false;
   try {
-    const res = await fetch(CLOUD_API_URL + "?t=" + Date.now(), { cache: "no-store" });
+    const res = await fetch(CLOUD_API_URL + "?t=" + Date.now(), {
+      method: "GET",
+      mode: "cors",
+      headers: { "Accept": "application/json" }
+    });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
         campaigns = data;
         reindexCampaigns();
         saveCampaignData();
@@ -228,12 +232,16 @@ async function loadCampaignData() {
   renderDashboard();
 }
 
-/* Silent 5-Second Realtime Auto-Polling Interval for Multi-Device Sync */
+/* Silent 4-Second Realtime Auto-Polling Interval for Multi-Device Sync */
 function startRealtimeCloudPolling() {
   setInterval(async () => {
     if (isSyncing) return;
     try {
-      const res = await fetch(CLOUD_API_URL + "?t=" + Date.now(), { cache: "no-store" });
+      const res = await fetch(CLOUD_API_URL + "?t=" + Date.now(), {
+        method: "GET",
+        mode: "cors",
+        headers: { "Accept": "application/json" }
+      });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -250,7 +258,7 @@ function startRealtimeCloudPolling() {
     } catch (e) {
       // Silent catch for background polling
     }
-  }, 5000);
+  }, 4000);
 }
 
 async function syncToCloudDatabase() {
@@ -259,7 +267,11 @@ async function syncToCloudDatabase() {
   try {
     await fetch(CLOUD_API_URL, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      mode: "cors",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
       body: JSON.stringify(campaigns)
     });
   } catch (err) {
@@ -460,7 +472,7 @@ function renderGallery() {
 }
 
 /* ==========================================================================
-   5. Event Handlers, Image Compression & Optimistic Realtime Display
+   5. Event Handlers & Mobile Form Submission
    ========================================================================== */
 function setupEventListeners() {
   const searchInput = document.getElementById("search-input");
@@ -553,7 +565,7 @@ function resetDateFilters() {
   renderGallery();
 }
 
-/* Image Compression Helper (Max 600px width for fast 100% reliable cloud sync) */
+/* Image Compression Helper (Max 500px width for fast mobile sync) */
 function handleFileSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -563,7 +575,7 @@ function handleFileSelect(e) {
     const img = new Image();
     img.onload = function() {
       const canvas = document.createElement("canvas");
-      const maxDim = 600;
+      const maxDim = 500;
       let width = img.width;
       let height = img.height;
 
@@ -584,7 +596,7 @@ function handleFileSelect(e) {
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, width, height);
 
-      uploadedImageDataUrl = canvas.toDataURL("image/jpeg", 0.75);
+      uploadedImageDataUrl = canvas.toDataURL("image/jpeg", 0.65);
       const previewArea = document.getElementById("photo-preview");
       if (previewArea) {
         previewArea.innerHTML = `<img src="${uploadedImageDataUrl}" alt="Uploaded Preview">`;
@@ -595,7 +607,7 @@ function handleFileSelect(e) {
   reader.readAsDataURL(file);
 }
 
-/* Optimistic Instant Data Submission with Global Cloud Sync */
+/* Multi-Device Mobile Form Submission */
 async function handleFormSubmit(e) {
   e.preventDefault();
 
@@ -626,7 +638,7 @@ async function handleFormSubmit(e) {
     date: campaignDate
   };
 
-  // 1. INSTANT LOCAL DISPLAY UPDATE
+  // 1. Unshift locally & re-render UI
   campaigns.unshift(newRecord);
   reindexCampaigns();
   saveCampaignData();
@@ -635,9 +647,9 @@ async function handleFormSubmit(e) {
   closeModal('modal-add-campaign');
   resetForm();
 
-  // 2. IMMEDIATE GLOBAL CLOUD SYNC
+  // 2. Global Sync to Cloud DB
   await syncToCloudDatabase();
-  alert("🎉 Campaign record submitted & live synced globally for " + policeStation + "!");
+  alert("🎉 Campaign record successfully saved for " + policeStation + "!");
 }
 
 function resetForm() {
@@ -652,7 +664,7 @@ function resetForm() {
   if (customGroup) customGroup.style.display = "none";
 }
 
-/* Optimistic Instant Data Delete with Global Cloud Sync */
+/* Multi-Device Delete Operation */
 async function deleteCampaign(srNo) {
   if (!isAdminMode) {
     alert("🔒 Delete operation restricted to Admin Mode only.");
@@ -666,7 +678,7 @@ async function deleteCampaign(srNo) {
     renderDashboard();
 
     await syncToCloudDatabase();
-    alert(`✅ Record #${srNo} permanently deleted & live synced globally!`);
+    alert(`✅ Record #${srNo} permanently deleted & live synced!`);
   }
 }
 
@@ -728,7 +740,7 @@ function generateCSVDownload() {
     csvContent += row + "\n";
   });
 
-  const encodedUri = encodeURI(encodeURI(csvContent));
+  const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
   link.setAttribute("download", `Aligarh_Cyber_Wednesday_Awareness_Report_${new Date().toISOString().split("T")[0]}.csv`);

@@ -1,7 +1,9 @@
-// Vercel Serverless Function API Endpoint: /api/campaigns
-// Server-side persistent state for Aligarh Cyber Wednesday Portal
+// Vercel Serverless Function Bridge: /api/campaigns
+// Server-Side Realtime Cloud Persistence Engine for District Aligarh Cyber Portal
 
-let inMemoryCampaigns = [
+const JSONBLOB_URL = "https://jsonblob.com/api/jsonBlob/019fcd39-c710-7475-a405-5201602f509b";
+
+const DEFAULT_CAMPAIGNS = [
   {
     srNo: 1,
     policeStation: "PS Civil lines",
@@ -31,8 +33,42 @@ let inMemoryCampaigns = [
   }
 ];
 
+async function fetchCloudData() {
+  try {
+    const res = await fetch(JSONBLOB_URL + "?t=" + Date.now(), {
+      headers: { "Accept": "application/json" }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+    }
+  } catch (e) {
+    console.error("Error fetching cloud blob:", e);
+  }
+  return DEFAULT_CAMPAIGNS;
+}
+
+async function saveCloudData(data) {
+  try {
+    await fetch(JSONBLOB_URL, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(data)
+    });
+    return true;
+  } catch (e) {
+    console.error("Error saving cloud blob:", e);
+    return false;
+  }
+}
+
 export default async function handler(req, res) {
-  // Set CORS & No-Cache Headers for 100% Realtime Sync
+  // Ultra-Permissive CORS & No-Cache Headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
@@ -42,36 +78,50 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // GET: Fetch all campaigns
+  // GET: Read global campaign database from cloud
   if (req.method === "GET") {
-    return res.status(200).json(inMemoryCampaigns);
+    const campaigns = await fetchCloudData();
+    return res.status(200).json(campaigns);
   }
 
-  // PUT / POST: Update or replace all campaigns
+  // PUT / POST: Write or prepend record to global cloud database
   if (req.method === "PUT" || req.method === "POST") {
     try {
       const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+      let currentData = await fetchCloudData();
+
       if (Array.isArray(body)) {
-        inMemoryCampaigns = body;
-        return res.status(200).json({ status: "success", campaigns: inMemoryCampaigns });
+        currentData = body;
       } else if (body && typeof body === "object") {
-        inMemoryCampaigns.unshift(body);
-        inMemoryCampaigns.forEach((item, idx) => { item.srNo = idx + 1; });
-        return res.status(200).json({ status: "success", campaigns: inMemoryCampaigns });
+        currentData.unshift(body);
       }
+
+      // Re-index Sr No (1, 2, 3...)
+      currentData.forEach((item, idx) => {
+        item.srNo = idx + 1;
+      });
+
+      await saveCloudData(currentData);
+      return res.status(200).json({ status: "success", campaigns: currentData });
     } catch (e) {
-      return res.status(400).json({ error: "Invalid JSON format" });
+      return res.status(400).json({ error: "Invalid JSON format: " + e.message });
     }
   }
 
-  // DELETE: Remove record by srNo query
+  // DELETE: Delete record by srNo query from global cloud database
   if (req.method === "DELETE") {
     const { srNo } = req.query;
     if (srNo) {
       const targetSrNo = parseInt(srNo);
-      inMemoryCampaigns = inMemoryCampaigns.filter(item => item.srNo !== targetSrNo);
-      inMemoryCampaigns.forEach((item, idx) => { item.srNo = idx + 1; });
-      return res.status(200).json({ status: "success", campaigns: inMemoryCampaigns });
+      let currentData = await fetchCloudData();
+      currentData = currentData.filter(item => item.srNo !== targetSrNo);
+      
+      currentData.forEach((item, idx) => {
+        item.srNo = idx + 1;
+      });
+
+      await saveCloudData(currentData);
+      return res.status(200).json({ status: "success", campaigns: currentData });
     }
   }
 

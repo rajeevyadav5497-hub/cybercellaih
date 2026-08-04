@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aligarh Cyber Crime Cell - Cyber Wednesday Awareness Campaign Portal
-   Vercel Native Serverless Engine (/api/campaigns) - 100% Multi-Device Live Sync
+   Vercel Global Serverless Multi-Device Sync Engine
    ========================================================================== */
 
 // Exact 32 Police Stations List for District Aligarh
@@ -42,7 +42,7 @@ const ALIGARH_POLICE_STATIONS = [
 // Official Admin Passcode for unlocking Admin Mode & CSV Export
 const HOST_PASSCODE = "852456";
 
-// Native Same-Domain Vercel Serverless API Endpoint (Zero CORS Block & 100% Multi-Device Sync)
+// Vercel Same-Domain Native Serverless API Endpoint
 const CLOUD_API_URL = "/api/campaigns";
 
 // Default Seed Data
@@ -191,7 +191,7 @@ function updateAdminUI() {
 }
 
 /* ==========================================================================
-   3. Vercel Serverless Multi-Device Sync Engine
+   3. Realtime Global Serverless Multi-Device Sync Engine
    ========================================================================== */
 async function loadCampaignData() {
   let cloudLoaded = false;
@@ -199,15 +199,15 @@ async function loadCampaignData() {
     const res = await fetch(CLOUD_API_URL + "?t=" + Date.now(), { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) {
-        campaigns = data.length > 0 ? data : [...DEFAULT_CAMPAIGNS];
+      if (Array.isArray(data) && data.length > 0) {
+        campaigns = data;
         reindexCampaigns();
         saveCampaignData();
         cloudLoaded = true;
       }
     }
   } catch (e) {
-    console.warn("Serverless API offline, using local fallback:", e);
+    console.warn("Serverless API offline, using LocalStorage fallback:", e);
   }
 
   if (!cloudLoaded) {
@@ -248,25 +248,9 @@ function startRealtimeCloudPolling() {
         }
       }
     } catch (e) {
-      // Silent catch
+      // Silent catch for background polling
     }
   }, 3000);
-}
-
-async function syncToCloudDatabase() {
-  isSyncing = true;
-  saveCampaignData();
-  try {
-    await fetch(CLOUD_API_URL, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(campaigns)
-    });
-  } catch (err) {
-    console.warn("Failed to sync to Vercel Serverless API:", err);
-  } finally {
-    isSyncing = false;
-  }
 }
 
 function saveCampaignData() {
@@ -460,7 +444,7 @@ function renderGallery() {
 }
 
 /* ==========================================================================
-   5. Event Handlers & Mobile Form Submission
+   5. Event Handlers & Multi-Device Mobile Form Submission
    ========================================================================== */
 function setupEventListeners() {
   const searchInput = document.getElementById("search-input");
@@ -553,7 +537,7 @@ function resetDateFilters() {
   renderGallery();
 }
 
-/* Image Compression Helper (Max 450px width for fast mobile sync) */
+/* Fast Mobile Image Compression (Max 450px) */
 function handleFileSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -595,7 +579,7 @@ function handleFileSelect(e) {
   reader.readAsDataURL(file);
 }
 
-/* Multi-Device Mobile Form Submission */
+/* Multi-Device Serverless Form Submission */
 async function handleFormSubmit(e) {
   e.preventDefault();
 
@@ -626,18 +610,38 @@ async function handleFormSubmit(e) {
     date: campaignDate
   };
 
-  // 1. Unshift locally & re-render UI
-  campaigns.unshift(newRecord);
-  reindexCampaigns();
+  isSyncing = true;
+  try {
+    const res = await fetch(CLOUD_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newRecord)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.campaigns) {
+        campaigns = data.campaigns;
+      } else {
+        campaigns.unshift(newRecord);
+        reindexCampaigns();
+      }
+    } else {
+      campaigns.unshift(newRecord);
+      reindexCampaigns();
+    }
+  } catch (err) {
+    campaigns.unshift(newRecord);
+    reindexCampaigns();
+  } finally {
+    isSyncing = false;
+  }
+
   saveCampaignData();
   renderDashboard();
 
   closeModal('modal-add-campaign');
   resetForm();
-
-  // 2. Global Sync to Native Vercel API
-  await syncToCloudDatabase();
-  alert("🎉 Campaign record successfully saved for " + policeStation + "!");
+  alert("🎉 Campaign record successfully saved & live synced for " + policeStation + "!");
 }
 
 function resetForm() {
@@ -652,7 +656,7 @@ function resetForm() {
   if (customGroup) customGroup.style.display = "none";
 }
 
-/* Multi-Device Delete Operation */
+/* Multi-Device Serverless Delete Handler */
 async function deleteCampaign(srNo) {
   if (!isAdminMode) {
     alert("🔒 Delete operation restricted to Admin Mode only.");
@@ -660,12 +664,33 @@ async function deleteCampaign(srNo) {
   }
 
   if (confirm(`Are you sure you want to delete Cyber Wednesday record #${srNo}?`)) {
-    campaigns = campaigns.filter(item => item.srNo !== srNo);
-    reindexCampaigns();
+    isSyncing = true;
+    try {
+      const res = await fetch(`${CLOUD_API_URL}?srNo=${srNo}`, {
+        method: "DELETE"
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.campaigns) {
+          campaigns = data.campaigns;
+        } else {
+          campaigns = campaigns.filter(item => item.srNo !== srNo);
+          reindexCampaigns();
+        }
+      } else {
+        campaigns = campaigns.filter(item => item.srNo !== srNo);
+        reindexCampaigns();
+      }
+    } catch (err) {
+      campaigns = campaigns.filter(item => item.srNo !== srNo);
+      reindexCampaigns();
+    } finally {
+      isSyncing = false;
+    }
+
     saveCampaignData();
     renderDashboard();
-
-    await syncToCloudDatabase();
     alert(`✅ Record #${srNo} permanently deleted & live synced!`);
   }
 }

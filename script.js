@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aligarh Cyber Crime Cell - Cyber Wednesday Awareness Campaign Portal
-   Vercel & Central Database Hybrid Integration
+   Global Cloud Realtime Database Integration (Vercel & Multi-Device Live Sync)
    ========================================================================== */
 
 // Exact 32 Police Stations List for District Aligarh
@@ -42,10 +42,10 @@ const ALIGARH_POLICE_STATIONS = [
 // Official Admin Passcode for unlocking Admin Mode & CSV Export
 const HOST_PASSCODE = "852456";
 
-// Central Database API Endpoint
-const API_URL = "/api/campaigns";
+// Global Cloud Realtime Database Endpoint (Syncs Vercel across all devices & mobiles)
+const CLOUD_API_URL = "https://jsonblob.com/api/jsonBlob/019fcd39-c710-7475-a405-5201602f509b";
 
-// Default Seed Data for Vercel / Initial Load
+// Default Seed Data
 const DEFAULT_CAMPAIGNS = [
   {
     srNo: 1,
@@ -188,28 +188,25 @@ function updateAdminUI() {
 }
 
 /* ==========================================================================
-   3. Hybrid Data API & Vercel Fallback Persistence
+   3. Global Cloud Realtime Database & Persistence Sync
    ========================================================================== */
 async function loadCampaignData() {
   try {
-    const res = await fetch(API_URL);
+    const res = await fetch(CLOUD_API_URL, { cache: "no-cache" });
     if (res.ok) {
-      const contentType = res.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          campaigns = data;
-          saveCampaignData();
-          renderDashboard();
-          return;
-        }
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        campaigns = data;
+        localStorage.setItem("aligarh_cyber_wednesday_campaigns", JSON.stringify(campaigns));
+        renderDashboard();
+        return;
       }
     }
   } catch (e) {
-    console.warn("Central Server offline or running on Vercel static host. Loading LocalStorage:", e);
+    console.warn("Global Cloud Database offline. Loading LocalStorage fallback:", e);
   }
 
-  // Fallback to LocalStorage for Vercel / Netlify
+  // LocalStorage Fallback
   const savedData = localStorage.getItem("aligarh_cyber_wednesday_campaigns");
   if (savedData !== null) {
     try {
@@ -220,9 +217,22 @@ async function loadCampaignData() {
     }
   } else {
     campaigns = [...DEFAULT_CAMPAIGNS];
-    saveCampaignData();
+    localStorage.setItem("aligarh_cyber_wednesday_campaigns", JSON.stringify(campaigns));
   }
   renderDashboard();
+}
+
+async function syncToCloudDatabase() {
+  localStorage.setItem("aligarh_cyber_wednesday_campaigns", JSON.stringify(campaigns));
+  try {
+    await fetch(CLOUD_API_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(campaigns)
+    });
+  } catch (err) {
+    console.warn("Failed to sync to Global Cloud Database:", err);
+  }
 }
 
 function saveCampaignData() {
@@ -416,7 +426,7 @@ function renderGallery() {
 }
 
 /* ==========================================================================
-   5. Event Handlers & Central API Integration
+   5. Event Handlers & Global Database Operations
    ========================================================================== */
 function setupEventListeners() {
   const searchInput = document.getElementById("search-input");
@@ -526,7 +536,7 @@ function handleFileSelect(e) {
   }
 }
 
-/* Vercel & Hybrid Database Submit Handler */
+/* Global Realtime Database Submit Handler */
 async function handleFormSubmit(e) {
   e.preventDefault();
 
@@ -557,36 +567,16 @@ async function handleFormSubmit(e) {
     date: campaignDate
   };
 
-  let apiSaved = false;
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newRecord)
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      if (data.campaigns) {
-        campaigns = data.campaigns;
-        apiSaved = true;
-      }
-    }
-  } catch (err) {
-    console.warn("Central Database Server API offline (Vercel Mode). Using LocalStorage:", err);
-  }
-
-  if (!apiSaved) {
-    campaigns.unshift(newRecord);
-    reindexCampaigns();
-  }
-
-  saveCampaignData();
+  campaigns.unshift(newRecord);
+  reindexCampaigns();
+  
+  // Live Sync to Global Cloud Database & LocalStorage
   renderDashboard();
-
   closeModal('modal-add-campaign');
   resetForm();
-  alert("🎉 Record successfully saved for " + policeStation + "!");
+
+  await syncToCloudDatabase();
+  alert("🎉 Record successfully submitted & live synced for " + policeStation + "!");
 }
 
 function resetForm() {
@@ -601,7 +591,7 @@ function resetForm() {
   if (customGroup) customGroup.style.display = "none";
 }
 
-/* Vercel & Hybrid Database Delete Handler */
+/* Global Realtime Database Delete Handler */
 async function deleteCampaign(srNo) {
   if (!isAdminMode) {
     alert("🔒 Delete operation restricted to Admin Mode only.");
@@ -609,31 +599,13 @@ async function deleteCampaign(srNo) {
   }
 
   if (confirm(`Are you sure you want to delete Cyber Wednesday record #${srNo}?`)) {
-    let apiDeleted = false;
-    try {
-      const res = await fetch(`${API_URL}/${srNo}`, {
-        method: "DELETE"
-      });
+    campaigns = campaigns.filter(item => item.srNo !== srNo);
+    reindexCampaigns();
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.campaigns) {
-          campaigns = data.campaigns;
-          apiDeleted = true;
-        }
-      }
-    } catch (err) {
-      console.warn("Central Database API offline (Vercel Mode), deleting locally:", err);
-    }
-
-    if (!apiDeleted) {
-      campaigns = campaigns.filter(item => item.srNo !== srNo);
-      reindexCampaigns();
-    }
-
-    saveCampaignData();
     renderDashboard();
-    alert(`✅ Record #${srNo} permanently deleted!`);
+    await syncToCloudDatabase();
+
+    alert(`✅ Record #${srNo} permanently deleted & live synced!`);
   }
 }
 

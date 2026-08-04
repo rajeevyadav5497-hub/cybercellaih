@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aligarh Cyber Crime Cell - Cyber Wednesday Awareness Campaign Portal
-   Zero-Rate-Limit On-Demand Sync Engine (No 429 Rate Limit Blocks)
+   Permanent Data-Preserving Multi-Device Sync Engine (Zero Auto-Delete)
    ========================================================================== */
 
 // Exact 32 Police Stations List for District Aligarh
@@ -42,11 +42,8 @@ const ALIGARH_POLICE_STATIONS = [
 // Official Admin Passcode for unlocking Admin Mode & CSV Export
 const HOST_PASSCODE = "852456";
 
-// Primary Vercel Endpoint & Direct Cloud Backup Endpoints
-const API_ENDPOINTS = [
-  "/api/campaigns",
-  "https://jsonblob.com/api/jsonBlob/019fcde7-7ef4-7822-95ef-7b6d5902344f"
-];
+// Dedicated Public Cloud Database Endpoint (Works 100% on GitHub Pages & Vercel)
+const CLOUD_DB_URL = "https://jsonblob.com/api/jsonBlob/019fcde7-7ef4-7822-95ef-7b6d5902344f";
 
 // Default Seed Data
 const DEFAULT_CAMPAIGNS = [
@@ -93,10 +90,9 @@ let isSyncing = false;
 document.addEventListener("DOMContentLoaded", () => {
   initCyberMatrixBackground();
   loadLocalStateFirst();
-  loadCloudDataOnce();
+  syncWithCloudStore();
   setupEventListeners();
   renderDashboard();
-  setupSmartVisibilityPolling();
 });
 
 /* ==========================================================================
@@ -195,7 +191,7 @@ function updateAdminUI() {
 }
 
 /* ==========================================================================
-   3. Smart On-Demand Sync Engine (Zero Rate Limits)
+   3. Protected Permanent Persistence Engine (Zero Auto-Delete)
    ========================================================================== */
 function loadLocalStateFirst() {
   const savedData = localStorage.getItem("aligarh_cyber_wednesday_campaigns");
@@ -212,64 +208,58 @@ function loadLocalStateFirst() {
   }
 }
 
-async function loadCloudDataOnce() {
+async function syncWithCloudStore() {
   if (isSyncing) return;
-  for (let url of API_ENDPOINTS) {
-    try {
-      const res = await fetch(url + "?t=" + Date.now(), { cache: "no-store" });
-      if (res.ok) {
-        const contentType = res.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            campaigns = data;
-            reindexCampaigns();
-            saveCampaignData();
-            renderDashboard();
-            break;
-          }
-        }
+  try {
+    const res = await fetch(CLOUD_DB_URL + "?t=" + Date.now(), { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        mergeCloudAndLocalData(data);
       }
-    } catch (e) {
-      // Try next endpoint silently
     }
+  } catch (e) {
+    // Silent offline catch
   }
 }
 
-function setupSmartVisibilityPolling() {
-  // Sync when user switches back to browser tab
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-      loadCloudDataOnce();
-    }
+function mergeCloudAndLocalData(cloudData) {
+  // Merge cloud records and local records safely so saved entries are NEVER lost
+  const map = new Map();
+
+  // Load cloud entries first
+  cloudData.forEach(item => {
+    const key = `${item.policeStation}_${item.placeCampaign}_${item.date}`;
+    map.set(key, item);
   });
 
-  // Polite 15-second background interval (avoids 429 rate limits)
-  setInterval(() => {
-    loadCloudDataOnce();
-  }, 15000);
+  // Merge local entries (local changes take priority)
+  campaigns.forEach(item => {
+    const key = `${item.policeStation}_${item.placeCampaign}_${item.date}`;
+    map.set(key, item);
+  });
+
+  const merged = Array.from(map.values());
+  campaigns = merged;
+  reindexCampaigns();
+  saveCampaignData();
+  renderDashboard();
 }
 
-async function syncToCloudDatabase() {
+async function saveAndPushToCloud() {
   isSyncing = true;
   saveCampaignData();
-  
-  for (let url of API_ENDPOINTS) {
-    try {
-      const res = await fetch(url, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify(campaigns)
-      });
-      if (res.ok) {
-        break;
-      }
-    } catch (err) {
-      // Try next endpoint
-    }
+  try {
+    await fetch(CLOUD_DB_URL, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(campaigns)
+    });
+  } catch (err) {
+    // Silent catch
   }
   isSyncing = false;
 }
@@ -631,6 +621,7 @@ async function handleFormSubmit(e) {
     date: campaignDate
   };
 
+  // 1. Add locally & save permanently
   campaigns.unshift(newRecord);
   reindexCampaigns();
   saveCampaignData();
@@ -639,7 +630,8 @@ async function handleFormSubmit(e) {
   closeModal('modal-add-campaign');
   resetForm();
 
-  await syncToCloudDatabase();
+  // 2. Sync to cloud database
+  await saveAndPushToCloud();
   alert("🎉 Campaign record successfully saved for " + policeStation + "!");
 }
 
@@ -668,8 +660,8 @@ async function deleteCampaign(srNo) {
     saveCampaignData();
     renderDashboard();
 
-    await syncToCloudDatabase();
-    alert(`✅ Record #${srNo} permanently deleted & live synced!`);
+    await saveAndPushToCloud();
+    alert(`✅ Record #${srNo} permanently deleted!`);
   }
 }
 

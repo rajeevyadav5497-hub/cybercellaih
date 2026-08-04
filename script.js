@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aligarh Cyber Crime Cell - Cyber Wednesday Awareness Campaign Portal
-   Global Cloud Realtime Database Integration (Vercel & Multi-Device Live Sync)
+   Vercel & Multi-Device Realtime Cloud Integration with Auto-Compression
    ========================================================================== */
 
 // Exact 32 Police Stations List for District Aligarh
@@ -42,7 +42,7 @@ const ALIGARH_POLICE_STATIONS = [
 // Official Admin Passcode for unlocking Admin Mode & CSV Export
 const HOST_PASSCODE = "852456";
 
-// Global Cloud Realtime Database Endpoint (Syncs Vercel across all devices & mobiles)
+// Global Cloud Realtime Database Endpoint
 const CLOUD_API_URL = "https://jsonblob.com/api/jsonBlob/019fcd39-c710-7475-a405-5201602f509b";
 
 // Default Seed Data
@@ -83,6 +83,7 @@ let currentFilterStation = "ALL";
 let currentFromDate = "";
 let currentToDate = "";
 let currentSearchQuery = "";
+let uploadedImageDataUrl = "";
 
 // Initialize Application
 document.addEventListener("DOMContentLoaded", () => {
@@ -188,42 +189,45 @@ function updateAdminUI() {
 }
 
 /* ==========================================================================
-   3. Global Cloud Realtime Database & Persistence Sync
+   3. Realtime Cloud & LocalStorage Persistence
    ========================================================================== */
 async function loadCampaignData() {
+  let cloudLoaded = false;
   try {
     const res = await fetch(CLOUD_API_URL, { cache: "no-cache" });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
         campaigns = data;
+        reindexCampaigns();
         localStorage.setItem("aligarh_cyber_wednesday_campaigns", JSON.stringify(campaigns));
-        renderDashboard();
-        return;
+        cloudLoaded = true;
       }
     }
   } catch (e) {
-    console.warn("Global Cloud Database offline. Loading LocalStorage fallback:", e);
+    console.warn("Cloud DB offline, using LocalStorage fallback:", e);
   }
 
-  // LocalStorage Fallback
-  const savedData = localStorage.getItem("aligarh_cyber_wednesday_campaigns");
-  if (savedData !== null) {
-    try {
-      const parsed = JSON.parse(savedData);
-      campaigns = Array.isArray(parsed) ? parsed : [...DEFAULT_CAMPAIGNS];
-    } catch (e) {
+  if (!cloudLoaded) {
+    const savedData = localStorage.getItem("aligarh_cyber_wednesday_campaigns");
+    if (savedData !== null) {
+      try {
+        const parsed = JSON.parse(savedData);
+        campaigns = Array.isArray(parsed) ? parsed : [...DEFAULT_CAMPAIGNS];
+      } catch (e) {
+        campaigns = [...DEFAULT_CAMPAIGNS];
+      }
+    } else {
       campaigns = [...DEFAULT_CAMPAIGNS];
+      saveCampaignData();
     }
-  } else {
-    campaigns = [...DEFAULT_CAMPAIGNS];
-    localStorage.setItem("aligarh_cyber_wednesday_campaigns", JSON.stringify(campaigns));
   }
+
   renderDashboard();
 }
 
 async function syncToCloudDatabase() {
-  localStorage.setItem("aligarh_cyber_wednesday_campaigns", JSON.stringify(campaigns));
+  saveCampaignData();
   try {
     await fetch(CLOUD_API_URL, {
       method: "PUT",
@@ -231,7 +235,7 @@ async function syncToCloudDatabase() {
       body: JSON.stringify(campaigns)
     });
   } catch (err) {
-    console.warn("Failed to sync to Global Cloud Database:", err);
+    console.warn("Failed to background sync to Cloud Database:", err);
   }
 }
 
@@ -426,7 +430,7 @@ function renderGallery() {
 }
 
 /* ==========================================================================
-   5. Event Handlers & Global Database Operations
+   5. Event Handlers, Image Compression & Optimistic Realtime Display
    ========================================================================== */
 function setupEventListeners() {
   const searchInput = document.getElementById("search-input");
@@ -519,25 +523,50 @@ function resetDateFilters() {
   renderGallery();
 }
 
-let uploadedImageDataUrl = "";
-
+/* Image Compression Helper (Max 600px width for fast 100% reliable cloud sync) */
 function handleFileSelect(e) {
   const file = e.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-      uploadedImageDataUrl = evt.target.result;
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement("canvas");
+      const maxDim = 600;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        }
+      } else {
+        if (height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+
+      uploadedImageDataUrl = canvas.toDataURL("image/jpeg", 0.75);
       const previewArea = document.getElementById("photo-preview");
       if (previewArea) {
         previewArea.innerHTML = `<img src="${uploadedImageDataUrl}" alt="Uploaded Preview">`;
       }
     };
-    reader.readAsDataURL(file);
-  }
+    img.src = evt.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
-/* Global Realtime Database Submit Handler */
-async function handleFormSubmit(e) {
+/* Optimistic Instant Data Submission */
+function handleFormSubmit(e) {
   e.preventDefault();
 
   const stationSelect = document.getElementById("input-station-select")?.value;
@@ -567,16 +596,18 @@ async function handleFormSubmit(e) {
     date: campaignDate
   };
 
+  // 1. INSTANT LOCAL DISPLAY UPDATE
   campaigns.unshift(newRecord);
   reindexCampaigns();
-  
-  // Live Sync to Global Cloud Database & LocalStorage
+  saveCampaignData();
   renderDashboard();
+
   closeModal('modal-add-campaign');
   resetForm();
 
-  await syncToCloudDatabase();
-  alert("🎉 Record successfully submitted & live synced for " + policeStation + "!");
+  // 2. ASYNC BACKGROUND CLOUD SYNC
+  syncToCloudDatabase();
+  alert("🎉 Campaign record successfully submitted & displayed for " + policeStation + "!");
 }
 
 function resetForm() {
@@ -591,8 +622,8 @@ function resetForm() {
   if (customGroup) customGroup.style.display = "none";
 }
 
-/* Global Realtime Database Delete Handler */
-async function deleteCampaign(srNo) {
+/* Optimistic Instant Data Delete */
+function deleteCampaign(srNo) {
   if (!isAdminMode) {
     alert("🔒 Delete operation restricted to Admin Mode only.");
     return;
@@ -601,11 +632,11 @@ async function deleteCampaign(srNo) {
   if (confirm(`Are you sure you want to delete Cyber Wednesday record #${srNo}?`)) {
     campaigns = campaigns.filter(item => item.srNo !== srNo);
     reindexCampaigns();
-
+    saveCampaignData();
     renderDashboard();
-    await syncToCloudDatabase();
 
-    alert(`✅ Record #${srNo} permanently deleted & live synced!`);
+    syncToCloudDatabase();
+    alert(`✅ Record #${srNo} deleted and updated!`);
   }
 }
 

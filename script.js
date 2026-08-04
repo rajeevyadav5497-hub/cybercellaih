@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aligarh Cyber Crime Cell - Cyber Wednesday Awareness Campaign Portal
-   100% Global Real-Time Multi-Device Sync Engine (3-Sec Cloud Heartbeat)
+   Vercel Native Serverless Engine (/api/campaigns) - 100% Multi-Device Live Sync
    ========================================================================== */
 
 // Exact 32 Police Stations List for District Aligarh
@@ -42,8 +42,8 @@ const ALIGARH_POLICE_STATIONS = [
 // Official Admin Passcode for unlocking Admin Mode & CSV Export
 const HOST_PASSCODE = "852456";
 
-// Global Cloud Realtime Database Endpoint
-const CLOUD_API_URL = "https://jsonblob.com/api/jsonBlob/019fcd39-c710-7475-a405-5201602f509b";
+// Native Same-Domain Vercel Serverless API Endpoint (Zero CORS Block & 100% Multi-Device Sync)
+const CLOUD_API_URL = "/api/campaigns";
 
 // Default Seed Data
 const DEFAULT_CAMPAIGNS = [
@@ -191,31 +191,23 @@ function updateAdminUI() {
 }
 
 /* ==========================================================================
-   3. Global Cloud Real-Time Auto-Sync Engine (3-Sec Heartbeat)
+   3. Vercel Serverless Multi-Device Sync Engine
    ========================================================================== */
 async function loadCampaignData() {
   let cloudLoaded = false;
   try {
-    const res = await fetch(CLOUD_API_URL + "?t=" + Date.now(), {
-      method: "GET",
-      headers: { "Accept": "application/json" }
-    });
+    const res = await fetch(CLOUD_API_URL + "?t=" + Date.now(), { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
-        if (data.length === 0) {
-          campaigns = [...DEFAULT_CAMPAIGNS];
-          await syncToCloudDatabase();
-        } else {
-          campaigns = data;
-          reindexCampaigns();
-          saveCampaignData();
-        }
+        campaigns = data.length > 0 ? data : [...DEFAULT_CAMPAIGNS];
+        reindexCampaigns();
+        saveCampaignData();
         cloudLoaded = true;
       }
     }
   } catch (e) {
-    console.warn("Cloud DB offline, using LocalStorage fallback:", e);
+    console.warn("Serverless API offline, using local fallback:", e);
   }
 
   if (!cloudLoaded) {
@@ -241,10 +233,7 @@ function startRealtimeCloudPolling() {
   setInterval(async () => {
     if (isSyncing) return;
     try {
-      const res = await fetch(CLOUD_API_URL + "?t=" + Date.now(), {
-        method: "GET",
-        headers: { "Accept": "application/json" }
-      });
+      const res = await fetch(CLOUD_API_URL + "?t=" + Date.now(), { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -259,7 +248,7 @@ function startRealtimeCloudPolling() {
         }
       }
     } catch (e) {
-      // Silent background catch
+      // Silent catch
     }
   }, 3000);
 }
@@ -270,14 +259,11 @@ async function syncToCloudDatabase() {
   try {
     await fetch(CLOUD_API_URL, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(campaigns)
     });
   } catch (err) {
-    console.warn("Failed to sync to Global Cloud Database:", err);
+    console.warn("Failed to sync to Vercel Serverless API:", err);
   } finally {
     isSyncing = false;
   }
@@ -567,7 +553,7 @@ function resetDateFilters() {
   renderGallery();
 }
 
-/* Image Compression Helper (Max 500px width for fast mobile sync) */
+/* Image Compression Helper (Max 450px width for fast mobile sync) */
 function handleFileSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -577,7 +563,7 @@ function handleFileSelect(e) {
     const img = new Image();
     img.onload = function() {
       const canvas = document.createElement("canvas");
-      const maxDim = 500;
+      const maxDim = 450;
       let width = img.width;
       let height = img.height;
 
@@ -598,7 +584,7 @@ function handleFileSelect(e) {
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, width, height);
 
-      uploadedImageDataUrl = canvas.toDataURL("image/jpeg", 0.65);
+      uploadedImageDataUrl = canvas.toDataURL("image/jpeg", 0.6);
       const previewArea = document.getElementById("photo-preview");
       if (previewArea) {
         previewArea.innerHTML = `<img src="${uploadedImageDataUrl}" alt="Uploaded Preview">`;
@@ -640,7 +626,7 @@ async function handleFormSubmit(e) {
     date: campaignDate
   };
 
-  // 1. Unshift locally & re-render UI immediately
+  // 1. Unshift locally & re-render UI
   campaigns.unshift(newRecord);
   reindexCampaigns();
   saveCampaignData();
@@ -649,7 +635,7 @@ async function handleFormSubmit(e) {
   closeModal('modal-add-campaign');
   resetForm();
 
-  // 2. Global Sync to Cloud DB (Propagates to all browsers in 3 seconds)
+  // 2. Global Sync to Native Vercel API
   await syncToCloudDatabase();
   alert("🎉 Campaign record successfully saved for " + policeStation + "!");
 }

@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aligarh Cyber Crime Cell - Cyber Wednesday Awareness Campaign Portal
-   Pure Custom Data Engine (Zero Demo Images / Zero Demo Records)
+   Zero Demo Records - Pure User Submission Engine
    ========================================================================== */
 
 // Exact 32 Police Stations List for District Aligarh
@@ -45,10 +45,10 @@ const HOST_PASSCODE = "852456";
 // Dedicated Public Cloud Database Endpoint
 const CLOUD_DB_URL = "https://jsonblob.com/api/jsonBlob/019fcde7-7ef4-7822-95ef-7b6d5902344f";
 
-// Clean Cyber Shield Placeholder Icon (Zero Local File Dependency)
+// Clean Cyber Shield Placeholder Icon
 const FALLBACK_PHOTO = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='100%25' height='100%25' fill='%230b1329'/%3E%3Cpath d='M100 35 L135 50 V85 C135 105 100 120 100 120 C100 120 65 105 65 85 V50 Z' fill='none' stroke='%2300f3ff' stroke-width='3'/%3E%3Ctext x='100' y='140' font-family='sans-serif' font-size='11' fill='%238b9bb4' text-anchor='middle'%3EAligarh Cyber Cell%3C/text%3E%3C/svg%3E";
 
-// App State (100% Blank Clean Initial State)
+// App State (Zero Records)
 let campaigns = [];
 let isAdminMode = false; // Default: Client View Mode
 let currentFilterStation = "ALL";
@@ -171,15 +171,15 @@ function updateAdminUI() {
 }
 
 /* ==========================================================================
-   3. Pure Realtime Save & Delete Multi-Device Sync Engine
+   3. Pure User Data Realtime Sync Engine (Zero Demo Records)
    ========================================================================== */
 function loadLocalStateFirst() {
   const savedData = localStorage.getItem("aligarh_cyber_wednesday_campaigns");
   if (savedData !== null) {
     try {
       const parsed = JSON.parse(savedData);
-      // Clean out any old demo data automatically
-      const clean = Array.isArray(parsed) ? parsed.filter(item => item.placeCampaign && !item.placeCampaign.includes("AMU Campus Hall & University Road")) : [];
+      // Clean out any old demo data
+      const clean = Array.isArray(parsed) ? parsed.filter(isUserCreatedRecord) : [];
       campaigns = clean;
     } catch (e) {
       campaigns = [];
@@ -190,6 +190,16 @@ function loadLocalStateFirst() {
   }
 }
 
+function isUserCreatedRecord(item) {
+  if (!item || !item.placeCampaign) return false;
+  const p = item.placeCampaign.toLowerCase();
+  const o = (item.officerName || "").toLowerCase();
+  // Filter out demo entries
+  if (p.includes("amu campus hall") || p.includes("inter college hall & market") || p.includes("police line auditorium")) return false;
+  if (o.includes("inspector aligarh cyber crime cell") && p.includes("amu campus")) return false;
+  return true;
+}
+
 function syncWithCloudStore() {
   try {
     fetch(CLOUD_DB_URL + "?t=" + Date.now(), { cache: "no-store" })
@@ -198,8 +208,7 @@ function syncWithCloudStore() {
       })
       .then(data => {
         if (Array.isArray(data)) {
-          // Remove old demo data if present in cloud response
-          const cleanData = data.filter(item => item.placeCampaign && !item.placeCampaign.includes("AMU Campus Hall & University Road"));
+          const cleanData = data.filter(isUserCreatedRecord);
           const currentStr = JSON.stringify(campaigns);
           const newStr = JSON.stringify(cleanData);
           if (currentStr !== newStr) {
@@ -751,7 +760,7 @@ function initCyberMatrixBackground() {
       y: Math.random() * height,
       vx: (Math.random() - 0.5) * 0.8,
       vy: (Math.random() - 0.5) * 0.8,
-      radius: Math.radius || Math.random() * 2.5 + 1,
+      radius: Math.random() * 2.5 + 1,
       color: Math.random() > 0.3 ? "rgba(0, 243, 255, " : "rgba(112, 0, 255, "
     });
   }

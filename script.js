@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aligarh Cyber Crime Cell - Cyber Wednesday Awareness Campaign Portal
-   Vercel Global Serverless Multi-Device Sync Engine
+   Google Firebase & Vercel Native Realtime Cloud Sync Engine (2-Sec Heartbeat)
    ========================================================================== */
 
 // Exact 32 Police Stations List for District Aligarh
@@ -42,7 +42,7 @@ const ALIGARH_POLICE_STATIONS = [
 // Official Admin Passcode for unlocking Admin Mode & CSV Export
 const HOST_PASSCODE = "852456";
 
-// Vercel Same-Domain Native Serverless API Endpoint
+// Native Same-Domain Vercel Serverless API Endpoint
 const CLOUD_API_URL = "/api/campaigns";
 
 // Default Seed Data
@@ -191,7 +191,7 @@ function updateAdminUI() {
 }
 
 /* ==========================================================================
-   3. Realtime Global Serverless Multi-Device Sync Engine
+   3. Realtime Global Serverless Engine (2-Sec High Speed Sync)
    ========================================================================== */
 async function loadCampaignData() {
   let cloudLoaded = false;
@@ -228,7 +228,7 @@ async function loadCampaignData() {
   renderDashboard();
 }
 
-/* Silent 3-Second Realtime Auto-Polling Interval for Multi-Device Sync */
+/* Silent 2-Second Realtime Auto-Polling Interval for Multi-Device Sync */
 function startRealtimeCloudPolling() {
   setInterval(async () => {
     if (isSyncing) return;
@@ -248,9 +248,9 @@ function startRealtimeCloudPolling() {
         }
       }
     } catch (e) {
-      // Silent catch for background polling
+      // Silent catch
     }
-  }, 3000);
+  }, 2000);
 }
 
 function saveCampaignData() {
@@ -537,7 +537,7 @@ function resetDateFilters() {
   renderGallery();
 }
 
-/* Fast Mobile Image Compression (Max 450px) */
+/* Fast Mobile Image Compression (Max 400px for ultra-lightweight 100% sync) */
 function handleFileSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -547,7 +547,7 @@ function handleFileSelect(e) {
     const img = new Image();
     img.onload = function() {
       const canvas = document.createElement("canvas");
-      const maxDim = 450;
+      const maxDim = 400;
       let width = img.width;
       let height = img.height;
 
@@ -568,7 +568,7 @@ function handleFileSelect(e) {
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, width, height);
 
-      uploadedImageDataUrl = canvas.toDataURL("image/jpeg", 0.6);
+      uploadedImageDataUrl = canvas.toDataURL("image/jpeg", 0.55);
       const previewArea = document.getElementById("photo-preview");
       if (previewArea) {
         previewArea.innerHTML = `<img src="${uploadedImageDataUrl}" alt="Uploaded Preview">`;

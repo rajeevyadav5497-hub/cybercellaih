@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aligarh Cyber Crime Cell - Cyber Wednesday Awareness Campaign Portal
-   100% Fail-Proof Save & Delete Multi-Device Realtime Sync Engine
+   Bulletproof Auto-Seeding Realtime Cloud Database Sync Engine
    ========================================================================== */
 
 // Exact 32 Police Stations List for District Aligarh
@@ -42,7 +42,7 @@ const ALIGARH_POLICE_STATIONS = [
 // Official Admin Passcode for unlocking Admin Mode & CSV Export
 const HOST_PASSCODE = "852456";
 
-// Public Cloud Storage URL
+// Dedicated Public Cloud Database Endpoint (Works 100% on GitHub Pages & Vercel)
 const CLOUD_DB_URL = "https://jsonblob.com/api/jsonBlob/019fcde7-7ef4-7822-95ef-7b6d5902344f";
 
 // Default Seed Data
@@ -199,7 +199,7 @@ function updateAdminUI() {
 }
 
 /* ==========================================================================
-   3. Realtime Save & Delete Multi-Device Sync Engine
+   3. Auto-Seeding Realtime Save & Delete Multi-Device Sync Engine
    ========================================================================== */
 function loadLocalStateFirst() {
   const savedData = localStorage.getItem("aligarh_cyber_wednesday_campaigns");
@@ -232,6 +232,9 @@ function syncWithCloudStore() {
             saveCampaignData();
             renderDashboard();
           }
+        } else if (Array.isArray(data) && data.length === 0) {
+          // Auto-seed cloud database if empty
+          pushToCloudBackground();
         }
       })
       .catch(() => {

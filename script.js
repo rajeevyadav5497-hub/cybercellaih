@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aligarh Cyber Crime Cell - Cyber Wednesday Awareness Campaign Portal
-   Bulletproof Auto-Seeding Realtime Cloud Database Sync Engine
+   Clean Multi-Device Realtime Cloud Database Engine (No Demo Seed Data)
    ========================================================================== */
 
 // Exact 32 Police Stations List for District Aligarh
@@ -42,41 +42,10 @@ const ALIGARH_POLICE_STATIONS = [
 // Official Admin Passcode for unlocking Admin Mode & CSV Export
 const HOST_PASSCODE = "852456";
 
-// Dedicated Public Cloud Database Endpoint (Works 100% on GitHub Pages & Vercel)
+// Dedicated Public Cloud Database Endpoint
 const CLOUD_DB_URL = "https://jsonblob.com/api/jsonBlob/019fcde7-7ef4-7822-95ef-7b6d5902344f";
 
-// Default Seed Data
-const DEFAULT_CAMPAIGNS = [
-  {
-    srNo: 1,
-    policeStation: "PS Civil lines",
-    placeCampaign: "AMU Campus Hall & University Road, Aligarh",
-    countPerson: 450,
-    officerName: "Inspector Aligarh Cyber Crime Cell",
-    date: "2026-07-29",
-    photo: "images/campaign_1.jpg"
-  },
-  {
-    srNo: 2,
-    policeStation: "PS Atruali",
-    placeCampaign: "Inter College Hall & Market Centre, Atrauli",
-    countPerson: 320,
-    officerName: "Sub-Inspector PS Atrauli",
-    date: "2026-07-22",
-    photo: "images/campaign_2.jpg"
-  },
-  {
-    srNo: 3,
-    policeStation: "Cyber Crime Cell",
-    placeCampaign: "Police Line Auditorium, District Aligarh",
-    countPerson: 600,
-    officerName: "In-charge Cyber Crime Cell Aligarh",
-    date: "2026-07-15",
-    photo: "images/campaign_3.jpg"
-  }
-];
-
-// App State
+// App State (Zero Demo Seed Records)
 let campaigns = [];
 let isAdminMode = false; // Default: Client View Mode
 let currentFilterStation = "ALL";
@@ -199,19 +168,19 @@ function updateAdminUI() {
 }
 
 /* ==========================================================================
-   3. Auto-Seeding Realtime Save & Delete Multi-Device Sync Engine
+   3. Clean Realtime Save & Delete Multi-Device Sync Engine
    ========================================================================== */
 function loadLocalStateFirst() {
   const savedData = localStorage.getItem("aligarh_cyber_wednesday_campaigns");
   if (savedData !== null) {
     try {
       const parsed = JSON.parse(savedData);
-      campaigns = Array.isArray(parsed) && parsed.length > 0 ? parsed : [...DEFAULT_CAMPAIGNS];
+      campaigns = Array.isArray(parsed) ? parsed : [];
     } catch (e) {
-      campaigns = [...DEFAULT_CAMPAIGNS];
+      campaigns = [];
     }
   } else {
-    campaigns = [...DEFAULT_CAMPAIGNS];
+    campaigns = [];
     saveCampaignData();
   }
 }
@@ -223,7 +192,7 @@ function syncWithCloudStore() {
         if (res && res.ok) return res.json();
       })
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           const currentStr = JSON.stringify(campaigns);
           const newStr = JSON.stringify(data);
           if (currentStr !== newStr) {
@@ -232,9 +201,6 @@ function syncWithCloudStore() {
             saveCampaignData();
             renderDashboard();
           }
-        } else if (Array.isArray(data) && data.length === 0) {
-          // Auto-seed cloud database if empty
-          pushToCloudBackground();
         }
       })
       .catch(() => {

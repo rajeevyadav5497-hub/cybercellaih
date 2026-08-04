@@ -68,7 +68,7 @@ async function saveCloudData(data) {
 }
 
 export default async function handler(req, res) {
-  // Ultra-Permissive CORS & No-Cache Headers
+  // CORS & Cache Headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // GET: Read global campaign database from cloud
+  // GET: Read global campaign database
   if (req.method === "GET") {
     const campaigns = await fetchCloudData();
     return res.status(200).json(campaigns);
@@ -87,7 +87,11 @@ export default async function handler(req, res) {
   // PUT / POST: Write or prepend record to global cloud database
   if (req.method === "PUT" || req.method === "POST") {
     try {
-      const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+      let body = req.body;
+      if (typeof body === "string") {
+        try { body = JSON.parse(body); } catch (e) {}
+      }
+      
       let currentData = await fetchCloudData();
 
       if (Array.isArray(body)) {
@@ -108,7 +112,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // DELETE: Delete record by srNo query from global cloud database
+  // DELETE: Delete record by srNo query
   if (req.method === "DELETE") {
     const { srNo } = req.query;
     if (srNo) {

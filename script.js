@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aligarh Cyber Crime Cell - Cyber Wednesday Awareness Campaign Portal
-   Vercel Realtime Serverless Engine - Synchronous Global Cloud Save & Sync
+   Vercel Global Serverless Multi-Device Sync Engine
    ========================================================================== */
 
 // Exact 32 Police Stations List for District Aligarh
@@ -42,7 +42,7 @@ const ALIGARH_POLICE_STATIONS = [
 // Official Admin Passcode for unlocking Admin Mode & CSV Export
 const HOST_PASSCODE = "852456";
 
-// Native Same-Domain Vercel Serverless API Endpoint
+// Vercel Same-Domain Native Serverless API Endpoint
 const CLOUD_API_URL = "/api/campaigns";
 
 // Default Seed Data
@@ -199,8 +199,8 @@ async function loadCampaignData() {
     const res = await fetch(CLOUD_API_URL + "?t=" + Date.now(), { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) {
-        campaigns = data.length > 0 ? data : [...DEFAULT_CAMPAIGNS];
+      if (Array.isArray(data) && data.length > 0) {
+        campaigns = data;
         reindexCampaigns();
         saveCampaignData();
         cloudLoaded = true;
@@ -248,7 +248,7 @@ function startRealtimeCloudPolling() {
         }
       }
     } catch (e) {
-      // Silent catch
+      // Silent catch for background polling
     }
   }, 3000);
 }
@@ -444,7 +444,7 @@ function renderGallery() {
 }
 
 /* ==========================================================================
-   5. Event Handlers & Synchronous Cloud Data Submission
+   5. Event Handlers & Multi-Device Mobile Form Submission
    ========================================================================== */
 function setupEventListeners() {
   const searchInput = document.getElementById("search-input");
@@ -579,12 +579,9 @@ function handleFileSelect(e) {
   reader.readAsDataURL(file);
 }
 
-/* Synchronous Cloud Saving & Live Multi-Device Sync Submit Handler */
+/* Multi-Device Serverless Form Submission */
 async function handleFormSubmit(e) {
   e.preventDefault();
-
-  const submitBtn = document.getElementById("btn-submit-campaign");
-  const originalBtnHTML = submitBtn ? submitBtn.innerHTML : "Submit Record";
 
   const stationSelect = document.getElementById("input-station-select")?.value;
   const customStation = document.getElementById("input-custom-station")?.value.trim();
@@ -613,12 +610,6 @@ async function handleFormSubmit(e) {
     date: campaignDate
   };
 
-  // Show Loading Spinner on Submit Button
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Saving & Syncing Globally...`;
-  }
-
   isSyncing = true;
   try {
     const res = await fetch(CLOUD_API_URL, {
@@ -643,10 +634,6 @@ async function handleFormSubmit(e) {
     reindexCampaigns();
   } finally {
     isSyncing = false;
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalBtnHTML;
-    }
   }
 
   saveCampaignData();
@@ -654,7 +641,7 @@ async function handleFormSubmit(e) {
 
   closeModal('modal-add-campaign');
   resetForm();
-  alert("🎉 Campaign record successfully saved & live synced globally for " + policeStation + "!");
+  alert("🎉 Campaign record successfully saved & live synced for " + policeStation + "!");
 }
 
 function resetForm() {
@@ -669,7 +656,7 @@ function resetForm() {
   if (customGroup) customGroup.style.display = "none";
 }
 
-/* Synchronous Delete Handler */
+/* Multi-Device Serverless Delete Handler */
 async function deleteCampaign(srNo) {
   if (!isAdminMode) {
     alert("🔒 Delete operation restricted to Admin Mode only.");
@@ -704,7 +691,7 @@ async function deleteCampaign(srNo) {
 
     saveCampaignData();
     renderDashboard();
-    alert(`✅ Record #${srNo} permanently deleted & live synced globally!`);
+    alert(`✅ Record #${srNo} permanently deleted & live synced!`);
   }
 }
 

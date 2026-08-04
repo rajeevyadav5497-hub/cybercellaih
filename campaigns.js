@@ -36,7 +36,8 @@ const DEFAULT_CAMPAIGNS = [
 async function fetchCloudData() {
   try {
     const res = await fetch(JSONBLOB_URL + "?t=" + Date.now(), {
-      headers: { "Accept": "application/json" }
+      headers: { "Accept": "application/json" },
+      cache: "no-store"
     });
     if (res.ok) {
       const data = await res.json();
@@ -52,7 +53,7 @@ async function fetchCloudData() {
 
 async function saveCloudData(data) {
   try {
-    await fetch(JSONBLOB_URL, {
+    const res = await fetch(JSONBLOB_URL, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -60,7 +61,7 @@ async function saveCloudData(data) {
       },
       body: JSON.stringify(data)
     });
-    return true;
+    return res.ok;
   } catch (e) {
     console.error("Error saving cloud blob:", e);
     return false;
@@ -105,8 +106,8 @@ export default async function handler(req, res) {
         item.srNo = idx + 1;
       });
 
-      await saveCloudData(currentData);
-      return res.status(200).json({ status: "success", campaigns: currentData });
+      const savedOk = await saveCloudData(currentData);
+      return res.status(200).json({ status: savedOk ? "success" : "partial", campaigns: currentData });
     } catch (e) {
       return res.status(400).json({ error: "Invalid JSON format: " + e.message });
     }
@@ -124,8 +125,8 @@ export default async function handler(req, res) {
         item.srNo = idx + 1;
       });
 
-      await saveCloudData(currentData);
-      return res.status(200).json({ status: "success", campaigns: currentData });
+      const savedOk = await saveCloudData(currentData);
+      return res.status(200).json({ status: savedOk ? "success" : "partial", campaigns: currentData });
     }
   }
 

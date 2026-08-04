@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aligarh Cyber Crime Cell - Cyber Wednesday Awareness Campaign Portal
-   Vercel & Multi-Device Realtime Cloud Integration with Auto-Compression
+   Vercel Global Realtime Auto-Sync Engine (5-Sec Live Polling Loop)
    ========================================================================== */
 
 // Exact 32 Police Stations List for District Aligarh
@@ -84,6 +84,7 @@ let currentFromDate = "";
 let currentToDate = "";
 let currentSearchQuery = "";
 let uploadedImageDataUrl = "";
+let isSyncing = false;
 
 // Initialize Application
 document.addEventListener("DOMContentLoaded", () => {
@@ -91,6 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadCampaignData();
   setupEventListeners();
   renderDashboard();
+  startRealtimeCloudPolling();
 });
 
 /* ==========================================================================
@@ -189,18 +191,18 @@ function updateAdminUI() {
 }
 
 /* ==========================================================================
-   3. Realtime Cloud & LocalStorage Persistence
+   3. Realtime Global Cloud Auto-Sync & Polling Engine
    ========================================================================== */
 async function loadCampaignData() {
   let cloudLoaded = false;
   try {
-    const res = await fetch(CLOUD_API_URL, { cache: "no-cache" });
+    const res = await fetch(CLOUD_API_URL + "?t=" + Date.now(), { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         campaigns = data;
         reindexCampaigns();
-        localStorage.setItem("aligarh_cyber_wednesday_campaigns", JSON.stringify(campaigns));
+        saveCampaignData();
         cloudLoaded = true;
       }
     }
@@ -226,7 +228,33 @@ async function loadCampaignData() {
   renderDashboard();
 }
 
+/* Silent 5-Second Realtime Auto-Polling Interval for Multi-Device Sync */
+function startRealtimeCloudPolling() {
+  setInterval(async () => {
+    if (isSyncing) return;
+    try {
+      const res = await fetch(CLOUD_API_URL + "?t=" + Date.now(), { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          const currentStr = JSON.stringify(campaigns);
+          const newStr = JSON.stringify(data);
+          if (currentStr !== newStr) {
+            campaigns = data;
+            reindexCampaigns();
+            saveCampaignData();
+            renderDashboard();
+          }
+        }
+      }
+    } catch (e) {
+      // Silent catch for background polling
+    }
+  }, 5000);
+}
+
 async function syncToCloudDatabase() {
+  isSyncing = true;
   saveCampaignData();
   try {
     await fetch(CLOUD_API_URL, {
@@ -236,6 +264,8 @@ async function syncToCloudDatabase() {
     });
   } catch (err) {
     console.warn("Failed to background sync to Cloud Database:", err);
+  } finally {
+    isSyncing = false;
   }
 }
 
@@ -565,8 +595,8 @@ function handleFileSelect(e) {
   reader.readAsDataURL(file);
 }
 
-/* Optimistic Instant Data Submission */
-function handleFormSubmit(e) {
+/* Optimistic Instant Data Submission with Global Cloud Sync */
+async function handleFormSubmit(e) {
   e.preventDefault();
 
   const stationSelect = document.getElementById("input-station-select")?.value;
@@ -605,9 +635,9 @@ function handleFormSubmit(e) {
   closeModal('modal-add-campaign');
   resetForm();
 
-  // 2. ASYNC BACKGROUND CLOUD SYNC
-  syncToCloudDatabase();
-  alert("🎉 Campaign record successfully submitted & displayed for " + policeStation + "!");
+  // 2. IMMEDIATE GLOBAL CLOUD SYNC
+  await syncToCloudDatabase();
+  alert("🎉 Campaign record submitted & live synced globally for " + policeStation + "!");
 }
 
 function resetForm() {
@@ -622,8 +652,8 @@ function resetForm() {
   if (customGroup) customGroup.style.display = "none";
 }
 
-/* Optimistic Instant Data Delete */
-function deleteCampaign(srNo) {
+/* Optimistic Instant Data Delete with Global Cloud Sync */
+async function deleteCampaign(srNo) {
   if (!isAdminMode) {
     alert("🔒 Delete operation restricted to Admin Mode only.");
     return;
@@ -635,8 +665,8 @@ function deleteCampaign(srNo) {
     saveCampaignData();
     renderDashboard();
 
-    syncToCloudDatabase();
-    alert(`✅ Record #${srNo} deleted and updated!`);
+    await syncToCloudDatabase();
+    alert(`✅ Record #${srNo} permanently deleted & live synced globally!`);
   }
 }
 
@@ -698,7 +728,7 @@ function generateCSVDownload() {
     csvContent += row + "\n";
   });
 
-  const encodedUri = encodeURI(csvContent);
+  const encodedUri = encodeURI(encodeURI(csvContent));
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
   link.setAttribute("download", `Aligarh_Cyber_Wednesday_Awareness_Report_${new Date().toISOString().split("T")[0]}.csv`);

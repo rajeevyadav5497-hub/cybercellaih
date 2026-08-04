@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aligarh Cyber Crime Cell - Cyber Wednesday Awareness Campaign Portal
-   Vercel & Mobile Multi-Device Realtime Cloud Engine (iOS & Android Compatible)
+   100% Global Real-Time Multi-Device Sync Engine (3-Sec Cloud Heartbeat)
    ========================================================================== */
 
 // Exact 32 Police Stations List for District Aligarh
@@ -191,22 +191,26 @@ function updateAdminUI() {
 }
 
 /* ==========================================================================
-   3. Realtime Global Cloud Auto-Sync Engine (iOS & Android Compatible)
+   3. Global Cloud Real-Time Auto-Sync Engine (3-Sec Heartbeat)
    ========================================================================== */
 async function loadCampaignData() {
   let cloudLoaded = false;
   try {
     const res = await fetch(CLOUD_API_URL + "?t=" + Date.now(), {
       method: "GET",
-      mode: "cors",
       headers: { "Accept": "application/json" }
     });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        campaigns = data;
-        reindexCampaigns();
-        saveCampaignData();
+      if (Array.isArray(data)) {
+        if (data.length === 0) {
+          campaigns = [...DEFAULT_CAMPAIGNS];
+          await syncToCloudDatabase();
+        } else {
+          campaigns = data;
+          reindexCampaigns();
+          saveCampaignData();
+        }
         cloudLoaded = true;
       }
     }
@@ -219,7 +223,7 @@ async function loadCampaignData() {
     if (savedData !== null) {
       try {
         const parsed = JSON.parse(savedData);
-        campaigns = Array.isArray(parsed) ? parsed : [...DEFAULT_CAMPAIGNS];
+        campaigns = Array.isArray(parsed) && parsed.length > 0 ? parsed : [...DEFAULT_CAMPAIGNS];
       } catch (e) {
         campaigns = [...DEFAULT_CAMPAIGNS];
       }
@@ -232,19 +236,18 @@ async function loadCampaignData() {
   renderDashboard();
 }
 
-/* Silent 4-Second Realtime Auto-Polling Interval for Multi-Device Sync */
+/* Silent 3-Second Realtime Auto-Polling Interval for Multi-Device Sync */
 function startRealtimeCloudPolling() {
   setInterval(async () => {
     if (isSyncing) return;
     try {
       const res = await fetch(CLOUD_API_URL + "?t=" + Date.now(), {
         method: "GET",
-        mode: "cors",
         headers: { "Accept": "application/json" }
       });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           const currentStr = JSON.stringify(campaigns);
           const newStr = JSON.stringify(data);
           if (currentStr !== newStr) {
@@ -256,9 +259,9 @@ function startRealtimeCloudPolling() {
         }
       }
     } catch (e) {
-      // Silent catch for background polling
+      // Silent background catch
     }
-  }, 4000);
+  }, 3000);
 }
 
 async function syncToCloudDatabase() {
@@ -267,7 +270,6 @@ async function syncToCloudDatabase() {
   try {
     await fetch(CLOUD_API_URL, {
       method: "PUT",
-      mode: "cors",
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json"
@@ -275,7 +277,7 @@ async function syncToCloudDatabase() {
       body: JSON.stringify(campaigns)
     });
   } catch (err) {
-    console.warn("Failed to background sync to Cloud Database:", err);
+    console.warn("Failed to sync to Global Cloud Database:", err);
   } finally {
     isSyncing = false;
   }
@@ -638,7 +640,7 @@ async function handleFormSubmit(e) {
     date: campaignDate
   };
 
-  // 1. Unshift locally & re-render UI
+  // 1. Unshift locally & re-render UI immediately
   campaigns.unshift(newRecord);
   reindexCampaigns();
   saveCampaignData();
@@ -647,7 +649,7 @@ async function handleFormSubmit(e) {
   closeModal('modal-add-campaign');
   resetForm();
 
-  // 2. Global Sync to Cloud DB
+  // 2. Global Sync to Cloud DB (Propagates to all browsers in 3 seconds)
   await syncToCloudDatabase();
   alert("🎉 Campaign record successfully saved for " + policeStation + "!");
 }

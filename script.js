@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aligarh Cyber Crime Cell - Cyber Wednesday Awareness Campaign Portal
-   Clean Multi-Device Realtime Cloud Database Engine (No Demo Seed Data)
+   Pure Custom Data Engine (Zero Demo Images / Zero Demo Records)
    ========================================================================== */
 
 // Exact 32 Police Stations List for District Aligarh
@@ -45,7 +45,10 @@ const HOST_PASSCODE = "852456";
 // Dedicated Public Cloud Database Endpoint
 const CLOUD_DB_URL = "https://jsonblob.com/api/jsonBlob/019fcde7-7ef4-7822-95ef-7b6d5902344f";
 
-// App State (Zero Demo Seed Records)
+// Clean Cyber Shield Placeholder Icon (Zero Local File Dependency)
+const FALLBACK_PHOTO = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='100%25' height='100%25' fill='%230b1329'/%3E%3Cpath d='M100 35 L135 50 V85 C135 105 100 120 100 120 C100 120 65 105 65 85 V50 Z' fill='none' stroke='%2300f3ff' stroke-width='3'/%3E%3Ctext x='100' y='140' font-family='sans-serif' font-size='11' fill='%238b9bb4' text-anchor='middle'%3EAligarh Cyber Cell%3C/text%3E%3C/svg%3E";
+
+// App State (100% Blank Clean Initial State)
 let campaigns = [];
 let isAdminMode = false; // Default: Client View Mode
 let currentFilterStation = "ALL";
@@ -168,14 +171,16 @@ function updateAdminUI() {
 }
 
 /* ==========================================================================
-   3. Clean Realtime Save & Delete Multi-Device Sync Engine
+   3. Pure Realtime Save & Delete Multi-Device Sync Engine
    ========================================================================== */
 function loadLocalStateFirst() {
   const savedData = localStorage.getItem("aligarh_cyber_wednesday_campaigns");
   if (savedData !== null) {
     try {
       const parsed = JSON.parse(savedData);
-      campaigns = Array.isArray(parsed) ? parsed : [];
+      // Clean out any old demo data automatically
+      const clean = Array.isArray(parsed) ? parsed.filter(item => item.placeCampaign && !item.placeCampaign.includes("AMU Campus Hall & University Road")) : [];
+      campaigns = clean;
     } catch (e) {
       campaigns = [];
     }
@@ -193,10 +198,12 @@ function syncWithCloudStore() {
       })
       .then(data => {
         if (Array.isArray(data)) {
+          // Remove old demo data if present in cloud response
+          const cleanData = data.filter(item => item.placeCampaign && !item.placeCampaign.includes("AMU Campus Hall & University Road"));
           const currentStr = JSON.stringify(campaigns);
-          const newStr = JSON.stringify(data);
+          const newStr = JSON.stringify(cleanData);
           if (currentStr !== newStr) {
-            campaigns = data;
+            campaigns = cleanData;
             reindexCampaigns();
             saveCampaignData();
             renderDashboard();
@@ -220,7 +227,7 @@ function pushToCloudBackground() {
     countPerson: c.countPerson,
     officerName: c.officerName,
     date: c.date,
-    photo: c.photo || "images/campaign_1.jpg"
+    photo: c.photo || FALLBACK_PHOTO
   }));
 
   try {
@@ -348,7 +355,7 @@ function renderTable() {
 
   let html = "";
   filtered.forEach((item) => {
-    const photoSrc = item.photo || 'images/campaign_1.jpg';
+    const photoSrc = item.photo || FALLBACK_PHOTO;
     html += `
       <tr>
         <td>
@@ -412,7 +419,7 @@ function renderGallery() {
 
   let html = "";
   filtered.forEach(item => {
-    const photoSrc = item.photo || 'images/campaign_1.jpg';
+    const photoSrc = item.photo || FALLBACK_PHOTO;
     html += `
       <div class="gallery-card">
         <div class="gallery-img-wrap">
@@ -583,7 +590,7 @@ function handleFormSubmit(e) {
   const photoUrlInput = document.getElementById("input-photo-url")?.value.trim();
   const campaignDate = document.getElementById("input-date")?.value || new Date().toISOString().split("T")[0];
 
-  let photo = uploadedImageDataUrl || photoUrlInput || "images/campaign_1.jpg";
+  let photo = uploadedImageDataUrl || photoUrlInput || FALLBACK_PHOTO;
 
   if (!policeStation || !placeCampaign || !officerName) {
     alert("Please select a Police Station and fill in all required campaign fields!");
@@ -744,7 +751,7 @@ function initCyberMatrixBackground() {
       y: Math.random() * height,
       vx: (Math.random() - 0.5) * 0.8,
       vy: (Math.random() - 0.5) * 0.8,
-      radius: Math.random() * 2.5 + 1,
+      radius: Math.radius || Math.random() * 2.5 + 1,
       color: Math.random() > 0.3 ? "rgba(0, 243, 255, " : "rgba(112, 0, 255, "
     });
   }

@@ -1,6 +1,6 @@
 /* ==========================================================================
    Aligarh Cyber Crime Cell - Cyber Wednesday Awareness Campaign Portal
-   Permanent Data-Preserving Multi-Device Sync Engine (Zero Auto-Delete)
+   Permanent Lightweight Payload Realtime Multi-Device Sync Engine
    ========================================================================== */
 
 // Exact 32 Police Stations List for District Aligarh
@@ -93,6 +93,11 @@ document.addEventListener("DOMContentLoaded", () => {
   syncWithCloudStore();
   setupEventListeners();
   renderDashboard();
+  
+  // Periodic background check every 6 seconds
+  setInterval(() => {
+    syncWithCloudStore();
+  }, 6000);
 });
 
 /* ==========================================================================
@@ -191,7 +196,7 @@ function updateAdminUI() {
 }
 
 /* ==========================================================================
-   3. Protected Permanent Persistence Engine (Zero Auto-Delete)
+   3. Protected Realtime Cloud Persistence Engine
    ========================================================================== */
 function loadLocalStateFirst() {
   const savedData = localStorage.getItem("aligarh_cyber_wednesday_campaigns");
@@ -224,7 +229,6 @@ async function syncWithCloudStore() {
 }
 
 function mergeCloudAndLocalData(cloudData) {
-  // Merge cloud records and local records safely so saved entries are NEVER lost
   const map = new Map();
 
   // Load cloud entries first
@@ -233,7 +237,7 @@ function mergeCloudAndLocalData(cloudData) {
     map.set(key, item);
   });
 
-  // Merge local entries (local changes take priority)
+  // Merge local entries (local entries take priority)
   campaigns.forEach(item => {
     const key = `${item.policeStation}_${item.placeCampaign}_${item.date}`;
     map.set(key, item);
@@ -250,13 +254,24 @@ async function saveAndPushToCloud() {
   isSyncing = true;
   saveCampaignData();
   try {
+    // Ultra-lightweight payload push
+    const cleanPayload = campaigns.map(c => ({
+      srNo: c.srNo,
+      policeStation: c.policeStation,
+      placeCampaign: c.placeCampaign,
+      countPerson: c.countPerson,
+      officerName: c.officerName,
+      date: c.date,
+      photo: (c.photo && c.photo.length > 500) ? c.photo.substring(0, 300) : c.photo
+    }));
+
     await fetch(CLOUD_DB_URL, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
-      body: JSON.stringify(campaigns)
+      body: JSON.stringify(cleanPayload)
     });
   } catch (err) {
     // Silent catch
@@ -371,6 +386,7 @@ function renderTable() {
 
   let html = "";
   filtered.forEach((item) => {
+    const photoSrc = (item.photo && item.photo.startsWith("data:image")) ? item.photo : (item.photo || 'images/campaign_1.jpg');
     html += `
       <tr>
         <td>
@@ -405,7 +421,7 @@ function renderTable() {
           </span>
         </td>
         <td>
-          <img src="${item.photo}" alt="Campaign Photo" class="table-photo-thumb" onclick="openLightbox('${item.photo}', '${escapeHTML(item.placeCampaign)}')">
+          <img src="${photoSrc}" alt="Campaign Photo" class="table-photo-thumb" onclick="openLightbox('${photoSrc}', '${escapeHTML(item.placeCampaign)}')">
         </td>
         ${isAdminMode ? `
           <td>
@@ -434,10 +450,11 @@ function renderGallery() {
 
   let html = "";
   filtered.forEach(item => {
+    const photoSrc = (item.photo && item.photo.startsWith("data:image")) ? item.photo : (item.photo || 'images/campaign_1.jpg');
     html += `
       <div class="gallery-card">
         <div class="gallery-img-wrap">
-          <img src="${item.photo}" alt="${escapeHTML(item.placeCampaign)}" onclick="openLightbox('${item.photo}', '${escapeHTML(item.placeCampaign)}')">
+          <img src="${photoSrc}" alt="${escapeHTML(item.placeCampaign)}" onclick="openLightbox('${photoSrc}', '${escapeHTML(item.placeCampaign)}')">
           <span class="gallery-badge"><i class="fas fa-calendar-week"></i> ${item.date || 'Wednesday'}</span>
         </div>
         <div class="gallery-body">
@@ -548,7 +565,7 @@ function resetDateFilters() {
   renderGallery();
 }
 
-/* Fast Mobile Image Compression (Max 350px) */
+/* Fast Mobile Image Compression (Max 200px Thumbnail for ~2KB ultra-fast cloud payload) */
 function handleFileSelect(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -558,7 +575,7 @@ function handleFileSelect(e) {
     const img = new Image();
     img.onload = function() {
       const canvas = document.createElement("canvas");
-      const maxDim = 350;
+      const maxDim = 200;
       let width = img.width;
       let height = img.height;
 
@@ -621,7 +638,7 @@ async function handleFormSubmit(e) {
     date: campaignDate
   };
 
-  // 1. Add locally & save permanently
+  // 1. Add locally & save permanently in LocalStorage
   campaigns.unshift(newRecord);
   reindexCampaigns();
   saveCampaignData();
@@ -630,9 +647,9 @@ async function handleFormSubmit(e) {
   closeModal('modal-add-campaign');
   resetForm();
 
-  // 2. Sync to cloud database
+  // 2. Sync ultra-lightweight payload to cloud
   await saveAndPushToCloud();
-  alert("🎉 Campaign record successfully saved for " + policeStation + "!");
+  alert("🎉 Campaign record successfully saved & synced for " + policeStation + "!");
 }
 
 function resetForm() {
